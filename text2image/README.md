@@ -1,24 +1,58 @@
-## 1. Intro to MAF
+# Quickstart for GLM-Image with uv
 
-Microsoft Agent Framework (MAF) offers **two** primary categories of capabilities:
+This guide helps you set up the environment and run the GLM-Image text-to-image generation sample using `uv`.
 
-* AI agents: Individual agents that use LLMs to process user inputs, call tools and MCP servers to perform actions, and generate responses. Agents support model providers including Azure OpenAI, OpenAI, and Azure AI.
-* Workflows: Graph-based workflows that connect multiple agents and functions to perform complex, multi-step tasks. Workflows support type-based routing, nesting, checkpointing, and request/response patterns for human-in-the-loop scenarios.
+## Prerequisites
 
-MAF supports DOTNET and PYTHON SDK. This repository demos the PYTHON SDK samples.
+- **uv**: An extremely fast Python package and project manager.
+  - Install via curl: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Or via pip: `pip install uv`
+  - Or via Homebrew (macOS): `brew install uv`
 
-## 2. Quick start
-Follow [Quick Start Guide](./quickstart.md) to setup the dev host, creating python project, and run the python sample scripts.
+## 1. Setup Project and Dependencies
 
-## 3. Intro into MAF Python SDK
-### 3.1 Agent (Capability)
-* https://github.com/microsoft/agent-framework/tree/main/python/samples/getting_started/agents
+Initialize the uv project and create the virtual environment with Python 3.12.
+**Note**: We use Python 3.12 because Python 3.13/3.14 often lack pre-built binaries (wheels) for PyTorch, leading to build failures.
 
-### 3.2 Workflow (Capability)
-* https://github.com/microsoft/agent-framework/tree/main/python/samples/getting_started/workflows
+```bash
+# cd $HOME/Code/VCS/ai/model-inference-samples
+cd text2image
+# Initialize project
+uv init --python 3.12
+uv venv --python 3.12 && source .venv/bin/activate && uv sync
+```
 
-## 4. Further References
-* Intro Microsoft Agent Framework (MAF): https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview
-* Github Repo Microsoft Agent Framework: https://github.com/microsoft/agent-framework
-* AI Agents for Beginner (14 Agent Framework): https://microsoft.github.io/ai-agents-for-beginners/
-* Frontier Agent Workshop https://github.com/yingding/frontier-agents-workshop/
+Add the dependencies. We use `--prerelease=allow` to support the git dependencies.
+
+```bash
+uv add --prerelease=allow -r requirements.txt
+```
+
+This command will automatically:
+- Update `pyproject.toml`
+- Create the `.venv` virtual environment (if missing)
+- Install all dependencies
+
+Activate the virtual environment:
+
+- **macOS/Linux**:
+  ```bash
+  source .venv/bin/activate
+  ```
+- **Windows**:
+  ```powershell
+  .venv\Scripts\activate
+  ```
+
+## 3. Run the Sample
+
+The `glm.py` script downloads the model (if not already cached) and generates an image based on the prompt.
+
+```bash
+python3 glm.py
+```
+
+## Troubleshooting
+
+- **Memory Issues**: If you run into OOM (Out Of Memory) errors, try reducing the image size in `glm.py` or enabling model offloading (though `enable_model_cpu_offload` might need adjustments for this specific pipeline).
+- **Device Support**: The script attempts to auto-detect CUDA or MPS (macOS). If you are on a CPU-only machine, generation will be very slow.

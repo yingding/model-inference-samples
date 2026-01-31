@@ -3,10 +3,6 @@ from applyllm.accelerators import (
     DirectorySetting,
     TokenHelper,
 )
-from applyllm.utils import time_func 
-from applyllm.pipelines import (
-    KwargsBuilder
-)
 dir_mode_map = {
     "kf_notebook": DirectorySetting(),
     "mac_local": DirectorySetting(
@@ -19,7 +15,7 @@ dir_setting = dir_mode_map["mac_local"]
 # set up the torch mps environment and huggingface cache home, before importing datasets and transformers
 AcceleratorHelper.init_torch_env(accelerator="mps", dir_setting=dir_setting)
 
-
+from applyllm.utils import time_func
 th = TokenHelper(dir_setting=dir_setting, prefix_list=["zai"])
 token_kwargs = th.gen_token_kwargs(model_type="zai")
 

@@ -8,6 +8,7 @@ protobuf==6.33.5
 applyllm==0.0.9rc3
 transformers>=5.0.0
 huggingface-hub==1.3.5
+tqdm==4.67.2
 
 git+https://github.com/huggingface/transformers.git
 git+https://github.com/huggingface/diffusers.git

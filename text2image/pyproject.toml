@@ -19,3 +19,11 @@ dependencies = [
 [tool.uv.sources]
 transformers = { git = "https://github.com/huggingface/transformers.git" }
 diffusers = { git = "https://github.com/huggingface/diffusers.git" }
+
+[dependency-groups]
+dev = [
+    "matplotlib==3.10.8",
+    "pillow==12.1.0",
+    "pytest>=9.0.2",
+    "tqdm==4.67.2",
+]

@@ -25,7 +25,10 @@ uv venv --python 3.12 && source .venv/bin/activate && uv sync
 Add the dependencies. We use `--prerelease=allow` to support the git dependencies.
 
 ```bash
+# add packages to prod group
 uv add --prerelease=allow -r requirements.txt
+# add packages to dev group
+uv add --dev pytest -r requirements_dev.txt
 ```
 
 This command will automatically:
@@ -49,7 +52,13 @@ Activate the virtual environment:
 The `glm.py` script downloads the model (if not already cached) and generates an image based on the prompt.
 
 ```bash
-python3 glm.py
+python glm_mps_dev.py
+```
+
+## Monitor MPS utilization
+```bash
+brew install asitop
+sudo asitop
 ```
 
 ## Troubleshooting

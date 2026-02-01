@@ -27,11 +27,11 @@ import torch, os
 from diffusers import DiffusionPipeline
 
 # Check if CUDA is available, otherwise use CPU or MPS (for Mac)
-device_map = "cpu"
+# device_map = "mps"
 if torch.cuda.is_available():
     device_map = "cuda"
-# elif torch.backends.mps.is_available():
-#    device_map = "mps"
+elif torch.backends.mps.is_available():
+   device_map = "mps"
     
 # Note: The model "zai-org/GLM-Image" relies on specific implementations in diffusers and transformers.
 # Ensure you have the latest versions installed from source as per instructions.
@@ -42,9 +42,12 @@ if torch.cuda.is_available():
 dtype = torch.bfloat16 # Default to bfloat16 for CPU (Apple Silicon supports it)
 if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
     dtype = torch.bfloat16
+    torch.backends.cuda.matmul.fp32_precision = 'tf32'
 elif device_map == "mps":
     # Use float32 for MPS to ensure stability and avoid "probability tensor contains either `inf`, `nan` or element < 0"
     dtype = torch.float32
+    torch.set_float32_matmul_precision('high')
+
 
 print(f"Loading model with dtype={dtype} and device_map={device_map}...")
 
@@ -80,22 +83,36 @@ pipe = PipelineClass.from_pretrained(
 if device_map == "cpu":
     pipe.to("cpu")
 
-# Fix for black images on MPS (Mac):
-# 1. Enable VAE tiling to prevent OOM/Overflow during decoding of large images
-if hasattr(pipe, "enable_vae_tiling"):
-    pipe.enable_vae_tiling()
-    print("Enabled VAE tiling")
-if hasattr(pipe, "enable_vae_slicing"):
-    pipe.enable_vae_slicing()
-    print("Enabled VAE slicing")
+# # Fix for black images on MPS (Mac):
+# # 1. Enable VAE tiling to prevent OOM/Overflow during decoding of large images
+# if hasattr(pipe, "enable_vae_tiling"):
+#     pipe.enable_vae_tiling()
+#     print("Enabled VAE tiling")
+# if hasattr(pipe, "enable_vae_slicing"):
+#     pipe.enable_vae_slicing()
+#     print("Enabled VAE slicing")
 
-# 2. Ensure VAE is in float32 (even if strictly not needed, it helps stability)
-if hasattr(pipe, "vae") and pipe.vae is not None:
-    pipe.vae = pipe.vae.to(dtype=torch.float32)
+# # 2. Ensure VAE is in float32 (even if strictly not needed, it helps stability)
+# if hasattr(pipe, "vae") and pipe.vae is not None:
+#     pipe.vae = pipe.vae.to(dtype=torch.float32)
 
 prompt = "A beautifully designed modern food magazine style dessert recipe illustration, themed around a raspberry mousse cake. The overall layout is clean and bright, divided into four main areas: the top left features a bold black title 'Raspberry Mousse Cake Recipe Guide', with a soft-lit close-up photo of the finished cake on the right, showcasing a light pink cake adorned with fresh raspberries and mint leaves; the bottom left contains an ingredient list section, titled 'Ingredients' in a simple font, listing 'Flour 150g', 'Eggs 3', 'Sugar 120g', 'Raspberry puree 200g', 'Gelatin sheets 10g', 'Whipping cream 300ml', and 'Fresh raspberries', each accompanied by minimalist line icons (like a flour bag, eggs, sugar jar, etc.); the bottom right displays four equally sized step boxes, each containing high-definition macro photos and corresponding instructions."
 
 print("Generating image...")
+
+# NUM_INFERENCE_STEPS = 5
+DEBUG_MODE = True
+if DEBUG_MODE:
+    NUM_INFERENCE_STEPS = 5
+else:
+    NUM_INFERENCE_STEPS = 50
+    print("DEBUG_MODE is ON: Using reduced inference steps and additional logging.")
+
+# runtime_kwargs = {
+#     "num_inference_steps": NUM_INFERENCE_STEPS,
+#     "output_type": "latent" if DEBUG_MODE else "pil",
+# }
+
 @time_func
 def generate_image():
     # 1. Generate latents first to debug validity
@@ -104,11 +121,12 @@ def generate_image():
         prompt=prompt,
         height=1024, # 32 * 32
         width=1152,  # 36 * 32
-        num_inference_steps=50,
+        num_inference_steps=NUM_INFERENCE_STEPS,
         guidance_scale=1.5,
         generator=torch.Generator(device=device_map).manual_seed(42),
         output_type="latent"
     )
+    
     # The pipeline wrapper returns 'images' which contains the latents tensor when output_type="latent"
     latents = output.images if hasattr(output, "images") else output[0]
     
@@ -145,7 +163,20 @@ image = generate_image()
 
 if image:
     # show the image
-    # image.show()
+    # show the histogram of PIL image
+    if DEBUG_MODE:
+        gray_image = image.convert("L")
+        hist = gray_image.histogram()
+        # print(f"Histogram: {hist}")
+        NUM_INFERENCE_STEPS = 5
+
+        import matplotlib.pyplot as plt
+        # Plot
+        plt.plot(hist)
+        plt.title("Grayscale Histogram")
+        plt.xlabel("Pixel intensity (0–255)")
+        plt.ylabel("Frequency")
+        plt.show()
 
     # Save or display the image to the output folder
     # make the output folder if it doesn't exist

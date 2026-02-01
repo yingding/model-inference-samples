@@ -30,6 +30,8 @@ uv add --prerelease=allow -r requirements.txt
 # add packages to dev group
 uv add --dev pytest -r requirements_dev.txt
 ```
+Reference:
+* https://stackoverflow.com/questions/78902565/how-do-i-install-python-dev-dependencies-using-uv
 
 This command will automatically:
 - Update `pyproject.toml`
